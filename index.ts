@@ -1,28 +1,36 @@
 import "dotenv/config";
+import express from "express";
 import { Pool } from "pg";
 import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient } from "./generated/prisma/client";
 
-// データベース接続の準備じゃ
+// データベース接続の設定
 const pool = new Pool({ connectionString: process.env.DATABASE_URL });
 const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter, log: ["query"] });
 
-async function main() {
-  console.log("データベースにユーザーを登録するぞ...");
-  // ユーザーを 1 件追加してみる
-  await prisma.user.create({
-    data: { name: `ひつじの弟子 ${new Date().toLocaleTimeString()}` },
-  });
+const app = express();
+const PORT = process.env.PORT || 8888;
 
-  // 全ユーザーを表示してみる
+app.set("view engine", "ejs");
+app.set("views", "./views");
+app.use(express.urlencoded({ extended: true }));
+
+// 画面を表示する（ ユーザー一覧を取得して index.ejs に渡す ）
+app.get("/", async (req, res) => {
   const users = await prisma.user.findMany();
-  console.log("ユーザー一覧:", users);
-}
+  res.render("index", { users });
+});
 
-main()
-  .catch((e) => {
-    console.error(e);
-    process.exit(1);
-  })
-  .finally(() => Promise.all([prisma.$disconnect(), pool.end()]));
+// ユーザーを追加する処理
+app.post("/users", async (req, res) => {
+  const name = req.body.name;
+  if (name) {
+    await prisma.user.create({ data: { name } });
+  }
+  res.redirect("/");
+});
+
+app.listen(PORT, () => {
+  console.log(`Server is running on http://localhost:${PORT}`);
+});
