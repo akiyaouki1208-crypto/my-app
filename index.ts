@@ -16,17 +16,21 @@ app.set("view engine", "ejs");
 app.set("views", "./views");
 app.use(express.urlencoded({ extended: true }));
 
-// 画面を表示する（ ユーザー一覧を取得して index.ejs に渡す ）
+// 画面を表示する処理
 app.get("/", async (req, res) => {
   const users = await prisma.user.findMany();
   res.render("index", { users });
 });
 
-// ユーザーを追加する処理
+// ユーザーを追加する処理（年齢にも対応じゃ！）
 app.post("/users", async (req, res) => {
   const name = req.body.name;
+  const age = req.body.age ? Number(req.body.age) : null;
+
   if (name) {
-    await prisma.user.create({ data: { name } });
+    await prisma.user.create({
+      data: { name, age },
+    });
   }
   res.redirect("/");
 });
